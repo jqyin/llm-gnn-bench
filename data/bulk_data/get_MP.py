@@ -1,4 +1,4 @@
-from pymatgen import MPRester
+from pymatgen.ext.matproj import MPRester
 from pymatgen.io.cif import CifWriter
 import csv
 import sys
