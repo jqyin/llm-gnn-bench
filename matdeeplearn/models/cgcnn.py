@@ -95,16 +95,15 @@ class CGCNN(torch.nn.Module):
                     if self.pool_order == "early" and self.pool == "set2set":
                         lin = torch.nn.Linear(post_fc_dim * 2, dim2)
                     else:
-                        if data[0].emb is None: 
-                            lin = torch.nn.Linear(post_fc_dim, dim2)
-                        else:
-                            #lin = torch.nn.Linear(post_fc_dim+data[0].emb.shape[1], dim2)
                             lin = torch.nn.Linear(post_fc_dim, dim2)
                     self.post_lin_list.append(lin)
                 else:
                     lin = torch.nn.Linear(dim2, dim2)
                     self.post_lin_list.append(lin)
-            self.lin_out = torch.nn.Linear(dim2, output_dim)
+            if data[0].emb is None: 
+                self.lin_out = torch.nn.Linear(dim2, output_dim)
+            else:
+                self.lin_out = torch.nn.Linear(dim2+data[0].emb.shape[1], output_dim)
 
         elif post_fc_count == 0:
             self.post_lin_list = torch.nn.ModuleList()
@@ -150,10 +149,6 @@ class CGCNN(torch.nn.Module):
             #out = getattr(F, self.act)(out)
             out = F.dropout(out, p=self.dropout_rate, training=self.training)
 
-        #llm_embedding = torch.randn(out.size(0), 1024, device=out.device)
-        print(out.shape, data.emb.shape)
-        if data.emb is not None: 
-            out = torch.cat((out, data.emb), dim=1)
         ##Post-GNN dense layers
         if self.pool_order == "early":
             if self.pool == "set2set":
@@ -163,6 +158,8 @@ class CGCNN(torch.nn.Module):
             for i in range(0, len(self.post_lin_list)):
                 out = self.post_lin_list[i](out)
                 out = getattr(F, self.act)(out)
+            if data.emb is not None: 
+                out = torch.cat((out, data.emb), dim=1)
             out = self.lin_out(out)
 
         elif self.pool_order == "late":
