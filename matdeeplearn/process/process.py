@@ -238,6 +238,14 @@ def process_data(data_path, processed_path, processing_args):
     with open(target_property_file) as f:
         reader = csv.reader(f)
         target_data = [row for row in reader]
+        target_dim = len(target_data[0]) 
+    #Load llm embedding 
+    if processing_args["llm_embedding"] is not None: 
+        embedding_file_path = os.path.join(
+                data_path, processing_args["llm_embedding"]
+        )
+        llm_embedding = np.load(embedding_file_path)
+        target_data = np.concatenate((np.array(target_data), llm_embedding), axis=1) 
 
     ##Read db file if specified
     ase_crystal_list = []
@@ -317,10 +325,16 @@ def process_data(data_path, processed_path, processing_args):
         data.edge_descriptor["distance"] = edge_weight
         data.edge_descriptor["mask"] = distance_matrix_mask
 
-        target = target_data[index][1:]
+        target = target_data[index][1:target_dim]
         y = torch.Tensor(np.array([target], dtype=np.float32))
         data.y = y
-
+        
+        if processing_args["llm_embedding"] is not None: 
+            emb = target_data[index][target_dim:]
+            emb = torch.Tensor(np.array([emb], dtype=np.float32))
+            data.emb = emb
+        else:
+            data.emb = None
         # pos = torch.Tensor(ase_crystal.get_positions())
         # data.pos = pos
         z = torch.LongTensor(ase_crystal.get_atomic_numbers())

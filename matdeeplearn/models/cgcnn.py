@@ -11,7 +11,7 @@ from torch_geometric.nn import (
     CGConv,
 )
 from torch_scatter import scatter_mean, scatter_add, scatter_max, scatter
-
+import numpy as np
 
 # CGCNN
 class CGCNN(torch.nn.Module):
@@ -42,7 +42,7 @@ class CGCNN(torch.nn.Module):
         self.act = act
         self.pool_order = pool_order
         self.dropout_rate = dropout_rate
-        
+
         ##Determine gc dimension dimension
         assert gc_count > 0, "Need at least 1 GC layer"        
         if pre_fc_count == 0:
@@ -95,8 +95,11 @@ class CGCNN(torch.nn.Module):
                     if self.pool_order == "early" and self.pool == "set2set":
                         lin = torch.nn.Linear(post_fc_dim * 2, dim2)
                     else:
-                        lin = torch.nn.Linear(1124,  dim2)
-                        #lin = torch.nn.Linear(post_fc_dim, dim2)
+                        if data[0].emb is None: 
+                            lin = torch.nn.Linear(post_fc_dim, dim2)
+                        else:
+                            #lin = torch.nn.Linear(post_fc_dim+data[0].emb.shape[1], dim2)
+                            lin = torch.nn.Linear(post_fc_dim, dim2)
                     self.post_lin_list.append(lin)
                 else:
                     lin = torch.nn.Linear(dim2, dim2)
@@ -147,8 +150,10 @@ class CGCNN(torch.nn.Module):
             #out = getattr(F, self.act)(out)
             out = F.dropout(out, p=self.dropout_rate, training=self.training)
 
-        llm_embedding = torch.randn(out.size(0), 1024, device=out.device)
-        out = torch.cat((out, llm_embedding), dim=1)
+        #llm_embedding = torch.randn(out.size(0), 1024, device=out.device)
+        print(out.shape, data.emb.shape)
+        if data.emb is not None: 
+            out = torch.cat((out, data.emb), dim=1)
         ##Post-GNN dense layers
         if self.pool_order == "early":
             if self.pool == "set2set":

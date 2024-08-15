@@ -87,9 +87,10 @@ Processing:
     #Path to atom dictionary file within data_path
     dictionary_path: "atom_dict.json"     
     #Format of data files (limit to those supported by ASE)
-    data_format: "json"
+    data_format: "cif"
     #Print out processing info 
     verbose: "True"
+    llm_embedding: "bulk_emb.npy"
     #graph specific settings 
     graph_max_radius : 8.0
     graph_max_neighbors : 12
